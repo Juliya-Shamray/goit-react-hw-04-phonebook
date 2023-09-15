@@ -1,78 +1,59 @@
 import { nanoid } from 'nanoid';
-import { Component } from 'react';
+import { useEffect, useState } from 'react';
 import { ContactForm } from './ContactForm/ContactForm';
 import { Filter } from './Filter/Filter';
 import { ContactList } from './ContactList/ContactList';
 import { toast } from 'react-toastify';
 
-export class App extends Component {
-  state = {
-    contacts: [],
-    filter: '',
-  };
+export const App = () => {
+  const [contacts, setContacts] = useState(
+    () => JSON.parse(window.localStorage.getItem('contacts')) ?? []
+  );
+  const [filter, setFilter] = useState('');
 
-  componentDidMount() {
-    const items = JSON.parse(window.localStorage.getItem('contacts'));
+  useEffect(() => {
+    window.localStorage.setItem('contacts', JSON.stringify(contacts));
+  }, [contacts]);
 
-    if (items?.length) {
-      this.setState({ contacts: items });
-    }
-  }
+  const handleAddContact = (name, number) => {
+    console.log(name, number);
 
-  componentDidUpdate(_, prevState) {
-    if (prevState.contacts.length !== this.state.contacts.length) {
-      window.localStorage.setItem(
-        'contacts',
-        JSON.stringify(this.state.contacts)
-      );
-    }
-  }
-
-  handleAddContact = data => {
     const contact = {
-      ...data,
+      name,
+      number,
       id: nanoid(),
     };
-    const findByName = this.state.contacts.find(
-      contact => contact.name === data.name
-    );
+
+    const findByName = contacts.find(contact => contact.name === name);
+
     findByName
       ? toast.info(`${findByName.name} is already in contacts`)
-      : this.setState(prev => ({
-          contacts: [...prev.contacts, contact],
-        }));
+      : setContacts(prev => [...prev, contact]);
   };
 
-  handleFilter = e => {
-    this.setState({ filter: e.target.value });
+  const handleFilter = e => {
+    setFilter(e.target.value);
   };
 
-  filterContacts = () => {
-    return this.state.contacts.filter(contact =>
-      contact.name.toLowerCase().includes(this.state.filter.toLowerCase())
+  const filterContacts = () => {
+    return contacts.filter(contact =>
+      contact.name.toLowerCase().includes(filter.toLowerCase())
     );
   };
 
-  handleDelete = id => {
-    this.setState(prev => ({
-      contacts: prev.contacts.filter(contact => contact.id !== id),
-    }));
+  const handleDelete = id => {
+    setContacts(prev => prev.filter(contact => contact.id !== id));
   };
-  render() {
-    const { filter } = this.state;
-    const filteredData = this.filterContacts();
-    return (
-      <div>
-        <h1>Phone book</h1>
-        <ContactForm handleAddContact={this.handleAddContact} />
+  const filteredData = filterContacts();
 
-        <h2>Contacts</h2>
-        <Filter filter={filter} handleFilter={this.handleFilter} />
-        <ContactList
-          filteredData={filteredData}
-          handleDelete={this.handleDelete}
-        />
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      <h1>Phone book</h1>
+      <ContactForm handleAddContact={handleAddContact} />
+
+      <h2>Contacts</h2>
+      <Filter filter={filter} handleFilter={handleFilter} />
+      <ContactList filteredData={filteredData} handleDelete={handleDelete} />
+    </div>
+  );
+};
